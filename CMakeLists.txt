@@ -25,8 +25,14 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_library(spinlock_lib SpinLock.cpp SpinLock.h LockGuard.h RwLock.h RwLock.cpp Mutex.h Mutex.cpp TicketLock.h TicketLock.cpp)
-target_include_directories(spinlock_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(spinlock_lib 
+    src/SpinLock.cpp src/SpinLock.h 
+    src/LockGuard.h 
+    src/RwLock.h src/RwLock.cpp 
+    src/Mutex.h src/Mutex.cpp 
+    src/TicketLock.h src/TicketLock.cpp
+)
+target_include_directories(spinlock_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_executable(synchronization main.cpp)
 target_link_libraries(synchronization PRIVATE spinlock_lib)

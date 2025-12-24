@@ -1,5 +1,5 @@
-#include "../LockGuard.h"
-#include "../SpinLock.h"
+#include "LockGuard.h"
+#include "SpinLock.h"
 #include <gtest/gtest.h>
 #include <mutex>
 #include <thread>
@@ -64,10 +64,9 @@ TEST(LockGuardTest, WorksWithStdMutex) {
   // minimal compile-time/runtime verification that it works
 }
 
-#include "../Mutex.h"
-#include "../RwLock.h"
-#include "../TicketLock.h"
-
+#include "Mutex.h"
+#include "RwLock.h"
+#include "TicketLock.h"
 
 // --- Mutex Tests ---
 TEST(MutexTest, BasicLockUnlock) {

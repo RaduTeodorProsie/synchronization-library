@@ -1,10 +1,9 @@
-#include "../LockGuard.h"
-#include "../SpinLock.h"
+#include "LockGuard.h"
+#include "SpinLock.h"
 #include <benchmark/benchmark.h>
 #include <mutex>
 #include <thread>
 #include <vector>
-
 
 static void BM_SpinLock(benchmark::State &state) {
   SpinLock spinlock;
@@ -43,7 +42,7 @@ static void BM_StdMutex(benchmark::State &state) {
 BENCHMARK(BM_StdMutex)->Range(1, 256)->UseRealTime();
 
 // --- TicketLock Benchmark ---
-#include "../TicketLock.h"
+#include "TicketLock.h"
 static void BM_TicketLock(benchmark::State &state) {
   TicketLock ticket;
   int counter = 0;
@@ -63,7 +62,7 @@ static void BM_TicketLock(benchmark::State &state) {
 BENCHMARK(BM_TicketLock)->Range(1, 256)->UseRealTime();
 
 // --- RwLock Benchmarks ---
-#include "../RwLock.h"
+#include "RwLock.h"
 #include <shared_mutex>
 
 // Read Heavy: 90% reads, 10% writes
