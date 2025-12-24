@@ -34,3 +34,23 @@ jobs:
       # Execute tests defined by the CMake configuration.
       # Note that --output-on-failure may manually specify specific target to run tests
       run: ctest -C ${{env.BUILD_TYPE}}
+
+    - name: Run Tests
+      working-directory: ${{github.workspace}}/build
+      run: ./Release/unit_tests.exe
+      if: runner.os == 'Windows'
+
+    - name: Run Tests (Linux)
+      working-directory: ${{github.workspace}}/build
+      run: ./unit_tests
+      if: runner.os == 'Linux'
+
+    - name: Run Benchmarks
+      working-directory: ${{github.workspace}}/build
+      run: ./Release/locks_benchmark.exe --benchmark_format=console
+      if: runner.os == 'Windows'
+      
+    - name: Run Benchmarks (Linux)
+      working-directory: ${{github.workspace}}/build
+      run: ./locks_benchmark --benchmark_format=console
+      if: runner.os == 'Linux'
