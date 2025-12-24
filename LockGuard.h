@@ -2,24 +2,21 @@
 #define LOCKGUARD_H
 #include <utility>
 
-template<typename T>
-concept Lockable = requires(T& t)
-{
-    t.lock();
-    {t.unlock()} noexcept;
+template <typename T>
+concept Lockable = requires(T &t) {
+  t.lock();
+  t.unlock();
 };
 
-template<Lockable L>
-class LockGuard {
-    L& data;
+template <Lockable L> class LockGuard {
+  L &data;
+
 public:
-    explicit LockGuard(L& data) : data(data) {data.lock();}
-    ~LockGuard() noexcept{
-        data.unlock();
-    }
+  explicit LockGuard(L &data) : data(data) { data.lock(); }
+  ~LockGuard() noexcept { data.unlock(); }
 
-    LockGuard(const LockGuard&) = delete;
-    LockGuard& operator=(const LockGuard&) = delete;
+  LockGuard(const LockGuard &) = delete;
+  LockGuard &operator=(const LockGuard &) = delete;
 };
 
-#endif //LOCKGUARD_H
+#endif // LOCKGUARD_H
