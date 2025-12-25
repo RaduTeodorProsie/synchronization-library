@@ -34,8 +34,7 @@ add_library(spinlock_lib
 )
 target_include_directories(spinlock_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-add_executable(synchronization main.cpp)
-target_link_libraries(synchronization PRIVATE spinlock_lib)
+
 
 # Benchmarks
 add_executable(locks_benchmark benchmarks/locks_benchmark.cpp)
