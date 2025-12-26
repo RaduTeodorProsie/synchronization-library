@@ -13,7 +13,7 @@ static void BM_SpinLock(benchmark::State &state) {
     benchmark::DoNotOptimize(0);
   }
 }
-BENCHMARK(BM_SpinLock)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_SpinLock)->ThreadRange(1, 16)->UseRealTime();
 
 // --- StdMutex Benchmark ---
 static void BM_StdMutex(benchmark::State &state) {
@@ -35,7 +35,7 @@ static void BM_TicketLock(benchmark::State &state) {
     ticket.unlock();
   }
 }
-BENCHMARK(BM_TicketLock)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_TicketLock)->ThreadRange(1, 16)->UseRealTime();
 
 // --- RwLock Benchmarks ---
 #include "RwLock.h"
