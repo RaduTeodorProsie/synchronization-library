@@ -1,0 +1,41 @@
+#ifndef SEQLOCK_H
+#define SEQLOCK_H
+
+#include <atomic>
+template <typename T>
+  requires std::is_trivially_copyable_v<T> &&
+           std::is_trivially_destructible_v<T>
+class SeqLock {
+  T data;
+  std::atomic<size_t> counter = 0;
+
+public:
+  T read() {
+    T result;
+
+    for (;;) {
+      size_t r1 = counter.load(std::memory_order_acquire);
+      if (r1 & 1)
+        continue;
+
+      result = data;
+      std::atomic_thread_fence(std::memory_order_acq_rel);
+      size_t r2 = counter.load(std::memory_order_relaxed);
+      if (r1 == r2)
+        return result;
+    }
+  }
+
+  template <typename Function>
+    requires std::is_invocable_v<Function, T &> &&
+             std::is_same_v<std::invoke_result_t<Function, T &>, void>
+  void write(Function &&func) {
+    counter.fetch_add(1, std::memory_order_acq_rel);
+
+    func(data);
+
+    counter.fetch_add(1, std::memory_order_acq_rel);
+  }
+};
+
+#endif // SEQLOCK_H

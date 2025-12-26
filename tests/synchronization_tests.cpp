@@ -66,6 +66,7 @@ TEST(LockGuardTest, WorksWithStdMutex) {
 
 #include "Mutex.h"
 #include "RwLock.h"
+#include "SeqLock.h"
 #include "TicketLock.h"
 
 // --- Mutex Tests ---
@@ -174,4 +175,63 @@ TEST(RwLockTest, WriterExclusion) {
   // Verification is mainly that we didn't crash or corrupt heavily.
   // Ideally shared_data should be num_writers if updates were atomic via lock.
   EXPECT_EQ(shared_data, num_writers);
+}
+
+// --- SeqLock Tests ---
+TEST(SeqLockTest, BasicReadWrite) {
+  SeqLock<int> seqlock;
+  seqlock.write([](int &data) { data = 42; });
+  int val = seqlock.read();
+  EXPECT_EQ(val, 42);
+}
+
+TEST(SeqLockTest, ConcurrentReadWrite) {
+  SeqLock<int> seqlock;
+  seqlock.write([](int &data) { data = 0; });
+
+  const int num_writers = 1;
+  const int writes_per_thread = 1000;
+  const int num_readers = 4;
+
+  std::vector<std::jthread> threads;
+
+  // Writers increment data
+  for (int i = 0; i < num_writers; ++i) {
+    threads.emplace_back([&] {
+      for (int j = 0; j < writes_per_thread; ++j) {
+        seqlock.write([](int &data) { data++; });
+      }
+    });
+  }
+
+  // Readers read data
+  std::atomic<bool> stop_readers = false;
+  std::vector<int> reads;
+  std::mutex reads_mtx;
+
+  for (int i = 0; i < num_readers; ++i) {
+    threads.emplace_back([&] {
+      while (!stop_readers) {
+        int val = seqlock.read();
+        if (val % 2 != 0 && val % 2 != 1) {
+          // This condition is practically impossible for int,
+          // but if we were reading a struct, we'd check for consistency.
+          // For int, just ensure we can read without hanging.
+        }
+      }
+    });
+  }
+
+  // Let readers run for a bit while writers are writing
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  stop_readers =
+      true; // threads.clear() will join writers first, then readers might run a
+            // bit longer or join. Actually jthread destructors request stop if
+            // they have a token, but here we just join. We need to signal
+            // readers to stop loop.
+
+  threads.clear();
+
+  int final_val = seqlock.read();
+  EXPECT_EQ(final_val, num_writers * writes_per_thread);
 }

@@ -114,4 +114,30 @@ static void BM_StdSharedMutex_ReadHeavy(benchmark::State &state) {
 }
 BENCHMARK(BM_StdSharedMutex_ReadHeavy)->Range(1, 256)->UseRealTime();
 
+// --- SeqLock Benchmark ---
+#include "SeqLock.h"
+// Read Heavy: Singular writer, others read
+static void BM_SeqLock_ReadHeavy(benchmark::State &state) {
+  SeqLock<int> seqlock;
+  seqlock.write([](int &data) { data = 0; });
+
+  for (auto _ : state) {
+    std::vector<std::jthread> threads;
+    threads.reserve(state.range(0));
+    for (int i = 0; i < state.range(0); ++i) {
+      threads.emplace_back([&, i] {
+        if (i == 0) { // Singular writer
+          seqlock.write([](int &data) { data++; });
+        } else { // Readers
+          int val = seqlock.read();
+          volatile int v = val;
+          (void)v;
+        }
+      });
+    }
+    threads.clear();
+  }
+}
+BENCHMARK(BM_SeqLock_ReadHeavy)->Range(1, 256)->UseRealTime();
+
 BENCHMARK_MAIN();

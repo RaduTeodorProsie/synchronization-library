@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.30)
 project(synchronization)
 
 set(CMAKE_CXX_STANDARD 23)
-
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Google Benchmark
 include(FetchContent)
@@ -31,6 +31,7 @@ add_library(spinlock_lib
     src/RwLock.h src/RwLock.cpp 
     src/Mutex.h src/Mutex.cpp 
     src/TicketLock.h src/TicketLock.cpp
+    src/SeqLock.h
 )
 target_include_directories(spinlock_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
