@@ -5,139 +5,98 @@
 #include <thread>
 #include <vector>
 
+// --- SpinLock Benchmark ---
 static void BM_SpinLock(benchmark::State &state) {
-  SpinLock spinlock;
-  int counter = 0;
+  static SpinLock spinlock;
   for (auto _ : state) {
-    std::vector<std::jthread> threads;
-    threads.reserve(state.range(0));
-    for (int i = 0; i < state.range(0); ++i) {
-      threads.emplace_back([&] {
-        LockGuard<SpinLock> guard(spinlock);
-        counter++;
-      });
-    }
-    threads.clear();
+    LockGuard<SpinLock> guard(spinlock);
+    benchmark::DoNotOptimize(0);
   }
 }
+BENCHMARK(BM_SpinLock)->ThreadRange(1, 256)->UseRealTime();
 
-// Register the function as a benchmark
-BENCHMARK(BM_SpinLock)->Range(1, 256)->UseRealTime();
-
+// --- StdMutex Benchmark ---
 static void BM_StdMutex(benchmark::State &state) {
-  std::mutex mtx;
-  int counter = 0;
+  static std::mutex mtx;
   for (auto _ : state) {
-    std::vector<std::jthread> threads;
-    threads.reserve(state.range(0));
-    for (int i = 0; i < state.range(0); ++i) {
-      threads.emplace_back([&] {
-        std::lock_guard<std::mutex> guard(mtx);
-        counter++;
-      });
-    }
-    threads.clear();
+    std::lock_guard<std::mutex> guard(mtx);
+    benchmark::DoNotOptimize(0);
   }
 }
-BENCHMARK(BM_StdMutex)->Range(1, 256)->UseRealTime();
+BENCHMARK(BM_StdMutex)->ThreadRange(1, 256)->UseRealTime();
 
 // --- TicketLock Benchmark ---
 #include "TicketLock.h"
 static void BM_TicketLock(benchmark::State &state) {
-  TicketLock ticket;
-  int counter = 0;
+  static TicketLock ticket;
   for (auto _ : state) {
-    std::vector<std::jthread> threads;
-    threads.reserve(state.range(0));
-    for (int i = 0; i < state.range(0); ++i) {
-      threads.emplace_back([&] {
-        ticket.lock();
-        counter++;
-        ticket.unlock();
-      });
-    }
-    threads.clear();
+    ticket.lock();
+    benchmark::DoNotOptimize(0);
+    ticket.unlock();
   }
 }
-BENCHMARK(BM_TicketLock)->Range(1, 256)->UseRealTime();
+BENCHMARK(BM_TicketLock)->ThreadRange(1, 256)->UseRealTime();
 
 // --- RwLock Benchmarks ---
 #include "RwLock.h"
 #include <shared_mutex>
 
-// Read Heavy: 90% reads, 10% writes
 static void BM_RwLock_ReadHeavy(benchmark::State &state) {
-  RwLock rwlock;
-  int data = 0;
-  for (auto _ : state) {
-    std::vector<std::jthread> threads;
-    threads.reserve(state.range(0));
-    for (int i = 0; i < state.range(0); ++i) {
-      threads.emplace_back([&, i] {
-        if (i % 10 == 0) { // 10% writers
-          rwlock.lockWrite();
-          data++;
-          rwlock.unlockWrite();
-        } else { // 90% readers
-          rwlock.lockRead();
-          volatile int val = data;
-          (void)val;
-          rwlock.unlockRead();
-        }
-      });
+  static RwLock rwlock;
+  static int data = 0;
+
+  if (state.thread_index() == 0) { // Single Writer
+    for (auto _ : state) {
+      rwlock.lockWrite();
+      data++;
+      rwlock.unlockWrite();
     }
-    threads.clear();
+  } else { // Readers
+    for (auto _ : state) {
+      rwlock.lockRead();
+      int val = data;
+      benchmark::DoNotOptimize(val);
+      rwlock.unlockRead();
+    }
   }
 }
-BENCHMARK(BM_RwLock_ReadHeavy)->Range(1, 256)->UseRealTime();
+BENCHMARK(BM_RwLock_ReadHeavy)->ThreadRange(1, 256)->UseRealTime();
 
 static void BM_StdSharedMutex_ReadHeavy(benchmark::State &state) {
-  std::shared_mutex rwlock;
-  int data = 0;
-  for (auto _ : state) {
-    std::vector<std::jthread> threads;
-    threads.reserve(state.range(0));
-    for (int i = 0; i < state.range(0); ++i) {
-      threads.emplace_back([&, i] {
-        if (i % 10 == 0) { // 10% writers
-          std::unique_lock lock(rwlock);
-          data++;
-        } else { // 90% readers
-          std::shared_lock lock(rwlock);
-          volatile int val = data;
-          (void)val;
-        }
-      });
+  static std::shared_mutex rwlock;
+  static int data = 0;
+
+  if (state.thread_index() == 0) { // Single Writer
+    for (auto _ : state) {
+      std::unique_lock lock(rwlock);
+      data++;
     }
-    threads.clear();
+  } else { // Readers
+    for (auto _ : state) {
+      std::shared_lock lock(rwlock);
+      int val = data;
+      benchmark::DoNotOptimize(val);
+    }
   }
 }
-BENCHMARK(BM_StdSharedMutex_ReadHeavy)->Range(1, 256)->UseRealTime();
+BENCHMARK(BM_StdSharedMutex_ReadHeavy)->ThreadRange(1, 256)->UseRealTime();
 
 // --- SeqLock Benchmark ---
 #include "SeqLock.h"
-// Read Heavy: Singular writer, others read
 static void BM_SeqLock_ReadHeavy(benchmark::State &state) {
-  SeqLock<int> seqlock;
-  seqlock.write([](int &data) { data = 0; });
+  static SeqLock<int> seqlock;
 
-  for (auto _ : state) {
-    std::vector<std::jthread> threads;
-    threads.reserve(state.range(0));
-    for (int i = 0; i < state.range(0); ++i) {
-      threads.emplace_back([&, i] {
-        if (i == 0) { // Singular writer
-          seqlock.write([](int &data) { data++; });
-        } else { // Readers
-          int val = seqlock.read();
-          volatile int v = val;
-          (void)v;
-        }
-      });
+  if (state.thread_index() == 0) { // Single Writer
+    for (auto _ : state) {
+      seqlock.write([](int &data) { data++; });
     }
-    threads.clear();
+  } else { // Readers
+    for (auto _ : state) {
+      int val = seqlock.read();
+      benchmark::DoNotOptimize(val);
+    }
   }
 }
-BENCHMARK(BM_SeqLock_ReadHeavy)->Range(1, 256)->UseRealTime();
+BENCHMARK(BM_SeqLock_ReadHeavy)->ThreadRange(1, 256)->UseRealTime();
 
 BENCHMARK_MAIN();

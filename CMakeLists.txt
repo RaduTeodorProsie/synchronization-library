@@ -32,6 +32,7 @@ add_library(spinlock_lib
     src/Mutex.h src/Mutex.cpp 
     src/TicketLock.h src/TicketLock.cpp
     src/SeqLock.h
+    src/RingBuffer.h
 )
 target_include_directories(spinlock_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -40,6 +41,9 @@ target_include_directories(spinlock_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # Benchmarks
 add_executable(locks_benchmark benchmarks/locks_benchmark.cpp)
 target_link_libraries(locks_benchmark PRIVATE spinlock_lib benchmark::benchmark)
+
+add_executable(ringbuffer_benchmark benchmarks/ringbuffer_benchmark.cpp)
+target_link_libraries(ringbuffer_benchmark PRIVATE spinlock_lib benchmark::benchmark)
 
 # Tests
 enable_testing()

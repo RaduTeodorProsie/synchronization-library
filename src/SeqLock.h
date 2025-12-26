@@ -1,13 +1,17 @@
 #ifndef SEQLOCK_H
 #define SEQLOCK_H
 
-#include <atomic>
+#include <new>
+
 template <typename T>
   requires std::is_trivially_copyable_v<T> &&
            std::is_trivially_destructible_v<T>
 class SeqLock {
+  constexpr static size_t cacheLineSize =
+      std::hardware_destructive_interference_size;
+
   T data;
-  std::atomic<size_t> counter = 0;
+  alignas(cacheLineSize) std::atomic<size_t> counter = 0;
 
 public:
   T read() {
