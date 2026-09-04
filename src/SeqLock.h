@@ -1,11 +1,15 @@
 #ifndef SEQLOCK_H
 #define SEQLOCK_H
 
+#include <atomic>
+#include <cstring>
 #include <new>
+#include <type_traits>
 
 template <typename T>
   requires std::is_trivially_copyable_v<T> &&
-           std::is_trivially_destructible_v<T>
+           std::is_trivially_destructible_v<T> &&
+           std::is_default_constructible_v<T>
 class SeqLock {
   constexpr static size_t cacheLineSize =
       std::hardware_destructive_interference_size;
@@ -22,7 +26,8 @@ public:
       if (r1 & 1)
         continue;
 
-      result = data;
+      // May tear; the counter re-check below is what makes it trustworthy.
+      std::memcpy(&result, &data, sizeof(T));
       std::atomic_thread_fence(std::memory_order_acq_rel);
       size_t r2 = counter.load(std::memory_order_relaxed);
       if (r1 == r2)
@@ -30,6 +35,7 @@ public:
     }
   }
 
+  // Single writer only.
   template <typename Function>
     requires std::is_invocable_v<Function, T &> &&
              std::is_same_v<std::invoke_result_t<Function, T &>, void>
