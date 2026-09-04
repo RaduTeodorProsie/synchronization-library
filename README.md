@@ -7,12 +7,14 @@ A collection of high-performance, C++23 synchronization primitives and concurren
 This library provides a set of thread-safe components:
 
 *   **RingBuffer**: A lock-free, fixed-size single-producer, single-consumer (SPSC) ring buffer. Head and tail live on separate cache lines and each side caches the other index so the common path never touches the other thread's atomic.
+*   **TreiberStack**: A lock-free LIFO stack. Popped nodes are reclaimed through the hazard pointer domain instead of being freed straight away, so concurrent pops stay safe.
 *   **SeqLock**: A sequence lock optimized for scenarios with frequent reads and rare writes. It allows readers to read data without locking, checking for consistency afterwards.
 *   **TicketLock**: A fair locking mechanism that grants the lock to threads in the order they requested it (FIFO).
 *   **SpinLock**: A lightweight lock that causes a thread trying to acquire it to simply wait in a loop ("spin") while checking if the lock is available.
 *   **RwLock**: A Read-Write lock allowing multiple readers or a single writer.
 *   **Mutex**: Standard mutual exclusion primitive.
 *   **LockGuard**: RAII wrapper for convenient lock management.
+*   **HazardPointers**: A minimal, fixed-capacity hazard pointer domain for safe memory reclamation in lock-free structures.
 
 ## Requirements
 
@@ -60,6 +62,7 @@ Performance benchmarks are implemented using Google Benchmark.
 cd build
 ./locks_benchmark
 ./ringbuffer_benchmark
+./stack_benchmark
 ```
 
 ## Usage Examples
@@ -118,5 +121,20 @@ void worker() {
     lock.lock();
     // Critical section
     lock.unlock();
+}
+```
+
+### TreiberStack
+
+```cpp
+#include "TreiberStack.h"
+
+TreiberStack<int> stack;
+
+stack.push(42);
+
+// pop() returns std::nullopt when the stack is empty
+if (auto value = stack.pop()) {
+    // use *value
 }
 ```
