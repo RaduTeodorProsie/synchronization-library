@@ -33,6 +33,8 @@ add_library(spinlock_lib
     src/TicketLock.h src/TicketLock.cpp
     src/SeqLock.h
     src/RingBuffer.h
+    src/HazardPointers.h
+    src/TreiberStack.h
 )
 target_include_directories(spinlock_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -44,6 +46,9 @@ target_link_libraries(locks_benchmark PRIVATE spinlock_lib benchmark::benchmark)
 
 add_executable(ringbuffer_benchmark benchmarks/ringbuffer_benchmark.cpp)
 target_link_libraries(ringbuffer_benchmark PRIVATE spinlock_lib benchmark::benchmark)
+
+add_executable(stack_benchmark benchmarks/stack_benchmark.cpp)
+target_link_libraries(stack_benchmark PRIVATE spinlock_lib benchmark::benchmark)
 
 # Tests
 enable_testing()

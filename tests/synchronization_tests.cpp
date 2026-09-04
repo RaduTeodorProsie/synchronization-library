@@ -235,3 +235,83 @@ TEST(SeqLockTest, ConcurrentReadWrite) {
   int final_val = seqlock.read();
   EXPECT_EQ(final_val, num_writers * writes_per_thread);
 }
+
+// --- TreiberStack Tests ---
+#include "TreiberStack.h"
+#include <optional>
+
+TEST(TreiberStackTest, LifoOrder) {
+  TreiberStack<int> stack;
+  stack.push(1);
+  stack.push(2);
+  stack.push(3);
+
+  EXPECT_EQ(stack.pop(), 3);
+  EXPECT_EQ(stack.pop(), 2);
+  EXPECT_EQ(stack.pop(), 1);
+  EXPECT_EQ(stack.pop(), std::nullopt);
+}
+
+TEST(TreiberStackTest, ConcurrentPushDrains) {
+  TreiberStack<int> stack;
+  const int num_threads = 8;
+  const int per_thread = 10000;
+
+  std::vector<std::jthread> threads;
+  for (int i = 0; i < num_threads; ++i) {
+    threads.emplace_back([&] {
+      for (int j = 0; j < per_thread; ++j) {
+        stack.push(j);
+      }
+    });
+  }
+  threads.clear();
+
+  long sum = 0;
+  int count = 0;
+  while (auto value = stack.pop()) {
+    sum += *value;
+    count++;
+  }
+
+  EXPECT_EQ(count, num_threads * per_thread);
+  // Each thread pushed 0..per_thread-1, so the totals are known.
+  EXPECT_EQ(sum, (long)num_threads * per_thread * (per_thread - 1) / 2);
+}
+
+TEST(TreiberStackTest, ConcurrentPushPop) {
+  TreiberStack<int> stack;
+  const int num_producers = 4;
+  const int num_consumers = 4;
+  const int per_producer = 20000;
+
+  std::atomic<int> popped = 0;
+  std::atomic<int> producers_done = 0;
+
+  std::vector<std::jthread> threads;
+  for (int i = 0; i < num_producers; ++i) {
+    threads.emplace_back([&] {
+      for (int j = 0; j < per_producer; ++j) {
+        stack.push(j);
+      }
+      producers_done++;
+    });
+  }
+  for (int i = 0; i < num_consumers; ++i) {
+    threads.emplace_back([&] {
+      while (producers_done < num_producers) {
+        if (stack.pop()) {
+          popped++;
+        }
+      }
+    });
+  }
+  threads.clear();
+
+  int leftover = 0;
+  while (stack.pop()) {
+    leftover++;
+  }
+
+  EXPECT_EQ(popped + leftover, num_producers * per_producer);
+}
