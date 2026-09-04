@@ -3,7 +3,7 @@
 void RwLock::lockRead() {
   std::scoped_lock lock(revolvingDoor, counter);
   if (activeReaders == 0) {
-    data.lock();
+    data.acquire();
   }
 
   activeReaders++;
@@ -12,7 +12,7 @@ void RwLock::lockRead() {
 void RwLock::unlockRead() {
   LockGuard<std::mutex> lock(counter);
   if (activeReaders == 1) {
-    data.unlock();
+    data.release();
   }
 
   activeReaders--;
@@ -20,10 +20,10 @@ void RwLock::unlockRead() {
 
 void RwLock::lockWrite() {
   revolvingDoor.lock();
-  data.lock();
+  data.acquire();
 }
 
 void RwLock::unlockWrite() {
-  data.unlock();
+  data.release();
   revolvingDoor.unlock();
 }
