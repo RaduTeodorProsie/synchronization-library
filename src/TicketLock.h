@@ -4,8 +4,8 @@
 #include<atomic>
 
 class TicketLock {
-    std::atomic<int> now{0};
-    std::atomic<int> counter{0};
+    std::atomic<unsigned> now{0};
+    std::atomic<unsigned> counter{0};
 
 public:
     void lock();

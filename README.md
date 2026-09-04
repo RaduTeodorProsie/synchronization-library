@@ -6,7 +6,7 @@ A collection of high-performance, C++23 synchronization primitives and concurren
 
 This library provides a set of thread-safe components:
 
-*   **RingBuffer**: A lock-free, fixed-size ring buffer for single-producer, single-consumer (SPSC) or multi-producer, multi-consumer scenarios (depending on usage, though the implementation suggests atomic head/tail optimized for concurrent access).
+*   **RingBuffer**: A lock-free, fixed-size single-producer, single-consumer (SPSC) ring buffer. Head and tail live on separate cache lines and each side caches the other index so the common path never touches the other thread's atomic.
 *   **SeqLock**: A sequence lock optimized for scenarios with frequent reads and rare writes. It allows readers to read data without locking, checking for consistency afterwards.
 *   **TicketLock**: A fair locking mechanism that grants the lock to threads in the order they requested it (FIFO).
 *   **SpinLock**: A lightweight lock that causes a thread trying to acquire it to simply wait in a loop ("spin") while checking if the lock is available.
