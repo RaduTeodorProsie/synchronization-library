@@ -1,5 +1,6 @@
 #include "LockGuard.h"
 #include "SpinLock.h"
+#include <algorithm>
 #include <gtest/gtest.h>
 #include <mutex>
 #include <thread>
@@ -284,34 +285,41 @@ TEST(TreiberStackTest, ConcurrentPushPop) {
   const int num_producers = 4;
   const int num_consumers = 4;
   const int per_producer = 20000;
+  const int total = num_producers * per_producer;
 
-  std::atomic<int> popped = 0;
+  std::vector<std::vector<int>> consumed(num_consumers);
   std::atomic<int> producers_done = 0;
 
   std::vector<std::jthread> threads;
   for (int i = 0; i < num_producers; ++i) {
-    threads.emplace_back([&] {
+    threads.emplace_back([&, i] {
+      // Every value pushed is distinct, so a lost or duplicated one shows up.
       for (int j = 0; j < per_producer; ++j) {
-        stack.push(j);
+        stack.push(i * per_producer + j);
       }
       producers_done++;
     });
   }
   for (int i = 0; i < num_consumers; ++i) {
-    threads.emplace_back([&] {
+    threads.emplace_back([&, i] {
       while (producers_done < num_producers) {
-        if (stack.pop()) {
-          popped++;
+        if (auto value = stack.pop()) {
+          consumed[i].push_back(*value);
         }
       }
     });
   }
   threads.clear();
 
-  int leftover = 0;
-  while (stack.pop()) {
-    leftover++;
+  std::vector<int> seen(total, 0);
+  for (const auto& values : consumed) {
+    for (int value : values) {
+      seen[value]++;
+    }
+  }
+  while (auto value = stack.pop()) {
+    seen[*value]++;
   }
 
-  EXPECT_EQ(popped + leftover, num_producers * per_producer);
+  EXPECT_EQ(std::ranges::count(seen, 1), total);
 }
