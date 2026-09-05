@@ -4,18 +4,8 @@ project(synchronization)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Google Benchmark
-include(FetchContent)
-set(BENCHMARK_ENABLE_TESTING OFF)
-set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
-FetchContent_Declare(
-  googlebenchmark
-  GIT_REPOSITORY https://github.com/google/benchmark.git
-  GIT_TAG v1.8.3
-)
-FetchContent_MakeAvailable(googlebenchmark)
-
 # Google Test
+include(FetchContent)
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
@@ -40,16 +30,6 @@ add_library(spinlock_lib
 target_include_directories(spinlock_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 
-
-# Benchmarks
-add_executable(locks_benchmark benchmarks/locks_benchmark.cpp)
-target_link_libraries(locks_benchmark PRIVATE spinlock_lib benchmark::benchmark)
-
-add_executable(ringbuffer_benchmark benchmarks/ringbuffer_benchmark.cpp)
-target_link_libraries(ringbuffer_benchmark PRIVATE spinlock_lib benchmark::benchmark)
-
-add_executable(stack_benchmark benchmarks/stack_benchmark.cpp)
-target_link_libraries(stack_benchmark PRIVATE spinlock_lib benchmark::benchmark)
 
 # Tests
 enable_testing()

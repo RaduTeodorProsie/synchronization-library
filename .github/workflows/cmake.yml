@@ -45,16 +45,3 @@ jobs:
       run: ./unit_tests
       if: runner.os == 'Linux'
 
-    - name: Run Benchmarks
-      working-directory: ${{github.workspace}}/build
-      run: |
-        ./Release/locks_benchmark.exe --benchmark_format=console
-        ./Release/ringbuffer_benchmark.exe --benchmark_format=console
-      if: runner.os == 'Windows'
-      
-    - name: Run Benchmarks (Linux)
-      working-directory: ${{github.workspace}}/build
-      run: |
-        ./locks_benchmark --benchmark_format=console
-        ./ringbuffer_benchmark --benchmark_format=console
-      if: runner.os == 'Linux'
