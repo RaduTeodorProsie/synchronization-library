@@ -4,7 +4,7 @@
 #include <stack>
 
 // --- Lock-free TreiberStack ---
-static void BM_TreiberStack_PushPop(benchmark::State &state) {
+static void BM_TreiberStack_PushPop(benchmark::State& state) {
   static TreiberStack<int> stack;
   for (auto _ : state) {
     stack.push(1);
@@ -14,7 +14,7 @@ static void BM_TreiberStack_PushPop(benchmark::State &state) {
 BENCHMARK(BM_TreiberStack_PushPop)->ThreadRange(1, 16)->UseRealTime();
 
 // --- std::stack behind a std::mutex ---
-static void BM_MutexStack_PushPop(benchmark::State &state) {
+static void BM_MutexStack_PushPop(benchmark::State& state) {
   static std::stack<int> stack;
   static std::mutex mtx;
   for (auto _ : state) {

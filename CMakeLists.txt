@@ -33,6 +33,7 @@ add_library(spinlock_lib
     src/TicketLock.h src/TicketLock.cpp
     src/SeqLock.h
     src/RingBuffer.h
+    src/Backoff.h
     src/HazardPointers.h
     src/TreiberStack.h
 )
