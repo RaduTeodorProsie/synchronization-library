@@ -11,8 +11,8 @@
 
 // Lock-free LIFO stack (Treiber's algorithm), reclaiming through hazard
 // pointers. Popped nodes are recycled through the hazard domain rather than
-// returned to the allocator, so a steady push/pop workload stops calling new
-// and delete altogether.
+// returned to the allocator, so a thread that both pushes and pops stops
+// calling new and delete altogether.
 template <typename T> class TreiberStack {
   // The value is kept in an optional so a recycled node carries no leftover T:
   // it is destroyed on pop and constructed again on the next push.

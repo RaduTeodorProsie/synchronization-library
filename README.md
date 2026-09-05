@@ -7,7 +7,7 @@ C++23 synchronization primitives and lock-free data structures.
 | | |
 |---|---|
 | **RingBuffer** | Lock-free SPSC ring buffer. Head and tail sit on separate cache lines, and each side caches the other's index so the common path never touches the other thread's atomic. |
-| **TreiberStack** | Lock-free LIFO stack. Popped nodes are reclaimed through the hazard-pointer domain and recycled rather than freed, so a steady workload stops calling `new`. |
+| **TreiberStack** | Lock-free LIFO stack. Popped nodes are reclaimed through the hazard-pointer domain and recycled rather than freed, so a thread that both pushes and pops stops calling `new`. |
 | **SeqLock** | Sequence lock for frequent reads and rare writes. Readers take no lock and issue no stores; they re-check a counter afterwards and retry. |
 | **HazardPointers** | Fixed-capacity hazard-pointer domain. `retire<T>()` keeps the static type, so there is no erased deleter, and objects a scan proves unguarded are parked for `reuse<T>()` instead of deleted. |
 | **Backoff** | Randomized exponential backoff for contended compare-exchange loops. |
@@ -25,9 +25,8 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
 cd build && ctest --output-on-failure
 ```
 
-The Treiber stack's recycling path also has a stress test — eight threads, 480k push/pop pairs,
-verifying no value is lost or duplicated — which runs clean under ThreadSanitizer and
-AddressSanitizer/UBSan.
+The Treiber stack's recycling path also has a stress test: four producers and four consumers
+over 80k distinct values, asserting each one is popped exactly once.
 
 ## Usage
 
