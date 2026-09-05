@@ -28,10 +28,13 @@ inline void cpuRelax() noexcept {
 // window doubles on every failure, and the wait is a random point inside it so
 // that a crowd of losers doesn't wake in lockstep and collide all over again.
 //
-// The cap bounds a wait at roughly a microsecond. Raising it keeps helping on a
-// benchmark that does nothing but hammer one cache line, but only because a
-// thread that spins for tens of microseconds has effectively left the contest —
-// past this point a lock that parks the waiter is the better tool.
+// The cap is in spin iterations, not in time, and the two are not the same
+// thing across architectures: x86 `pause` is tens of cycles, while AArch64
+// `yield` is closer to one, so the same cap is about 10 us on x86 and about
+// 230 ns on an Apple M-series core. Raising it keeps helping on a benchmark
+// that does nothing but hammer one cache line, but only because a thread that
+// spins that long has effectively left the contest — past this point a lock
+// that parks the waiter is the better tool.
 class Backoff {
 public:
   void pause() noexcept {
