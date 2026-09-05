@@ -1,4 +1,3 @@
-#include "Backoff.h"
 #include "TreiberStack.h"
 #include <benchmark/benchmark.h>
 #include <mutex>
@@ -19,11 +18,19 @@
 // The interesting question is therefore not "which is faster" but "how much
 // work has to sit between operations before the mutex stops being able to
 // batch", which is what sweeping this parameter shows.
-static void doWork(int units) {
+//
+// Deliberately not inlined, and deliberately arithmetic rather than a spin
+// hint. Each step depends on the last, so the cost is `units` multiply
+// latencies and nothing else. `cpuRelax()` was the obvious choice here and is
+// the wrong one: on AArch64 a `yield` next to the mutex's release-store CAS
+// costs about three times what the same loop costs on its own, so it cannot
+// hold the work constant across the two columns.
+[[gnu::noinline]] static void doWork(int units) {
+  unsigned state = 1;
   for (int i = 0; i < units; ++i) {
-    benchmark::DoNotOptimize(i);
-    cpuRelax();
+    state = state * 1664525u + 1013904223u;
   }
+  benchmark::DoNotOptimize(state);
 }
 
 // --- Lock-free TreiberStack ---
