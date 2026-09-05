@@ -69,17 +69,19 @@ public:
       }
 
       // Guard it, then re-check head: if it moved, the node may be retired.
-      // This path only reads head, so it doesn't need to back off.
+      // This path only reads head, so it doesn't need to back off. The load is
+      // seq_cst to order it after the guard's store; see Guard::protect.
       guard.protect(node);
-      Node* current = head.load(std::memory_order_acquire);
+      Node* current = head.load(std::memory_order_seq_cst);
       if (node != current) {
         node = current;
         continue;
       }
 
-      // Success only needs acquire; a pop publishes nothing to other threads.
+      // Success is seq_cst so the removal precedes this thread's later scan of
+      // the hazard slots in the same total order; see Guard::protect.
       if (head.compare_exchange_weak(node, node->next,
-                                     std::memory_order_acquire,
+                                     std::memory_order_seq_cst,
                                      std::memory_order_acquire)) {
         break;
       }

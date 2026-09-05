@@ -97,12 +97,15 @@ private:
   // Sorted so scan() can binary search it. The buffer is reused across scans to
   // keep reclamation allocation-free, so the result is only valid until this
   // thread takes another snapshot.
+  //
+  // The loads are seq_cst so they sit in the same total order as Guard::protect
+  // and the removal that preceded this scan: see protect().
   static const std::vector<const void*>& snapshotHazards() {
     thread_local std::vector<const void*> hazards;
     hazards.clear();
     hazards.reserve(maxThreads);
     for (const auto& slot : slotTable()) {
-      if (const void* guarded = slot.guarded.load(std::memory_order_acquire)) {
+      if (const void* guarded = slot.guarded.load(std::memory_order_seq_cst)) {
         hazards.push_back(guarded);
       }
     }
@@ -139,9 +142,12 @@ public:
     Guard& operator=(const Guard&) = delete;
     ~Guard() { clear(); }
 
+    // The store is seq_cst, and so is the re-read the caller validates with:
+    // release/acquire would let that read complete before the slot is visible,
+    // so a scan could miss this guard and hand p out to reuse().
     template <typename T>
     T* protect(T* p) const {
-      mySlot().guarded.store(p, std::memory_order_release);
+      mySlot().guarded.store(p, std::memory_order_seq_cst);
       return p;
     }
 
